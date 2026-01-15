@@ -3,6 +3,9 @@ import 'package:handy_link/service_provider_signup_page.dart';
 import 'package:handy_link/client_signup_page.dart';
 import 'package:handy_link/login_page.dart';
 
+// Global ValueNotifier to manage theme state
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
+
 void main() {
   runApp(const MyApp());
 }
@@ -12,13 +15,29 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'HandyLink.',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'HandyLink.'),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (_, mode, __) {
+        return MaterialApp(
+          title: 'HandyLink.',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.deepPurple,
+              brightness: Brightness.light,
+            ),
+            useMaterial3: true,
+          ),
+          darkTheme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.deepPurple,
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+          ),
+          themeMode: mode,
+          home: const MyHomePage(title: 'HandyLink.'),
+        );
+      },
     );
   }
 }
@@ -36,10 +55,23 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      // removing hardcoded backgroundColor to let scaffold rely on theme
       appBar: AppBar(
         title: const Text('HandyLink'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        actions: [
+          IconButton(
+            icon: Icon(themeNotifier.value == ThemeMode.light
+                ? Icons.dark_mode
+                : Icons.light_mode),
+            onPressed: () {
+              themeNotifier.value = themeNotifier.value == ThemeMode.light
+                  ? ThemeMode.dark
+                  : ThemeMode.light;
+            },
+          ),
+        ],
       ),
       body: Center(
         child: Padding(
@@ -47,19 +79,20 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 'Welcome to HandyLink',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
-              const Text(
+              Text(
                 'Choose your role to continue',
-                style: TextStyle(fontSize: 18, color: Colors.grey),
+                style: TextStyle(
+                    fontSize: 18, color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.6)),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 60),
@@ -90,7 +123,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Icon(
                                 Icons.business,
                                 size: 50,
-                                color: Colors.deepPurple,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(height: 10),
                               const Text(
@@ -131,7 +164,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Icon(
                                 Icons.person,
                                 size: 50,
-                                color: Colors.deepPurple,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(height: 10),
                               const Text(
@@ -158,11 +191,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     MaterialPageRoute(builder: (context) => const LoginPage()),
                   );
                 },
-                child: const Text(
+                child: Text(
                   'Already have an account? Login',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.deepPurple,
+                    color: Theme.of(context).colorScheme.primary,
                     decoration: TextDecoration.underline,
                   ),
                 ),

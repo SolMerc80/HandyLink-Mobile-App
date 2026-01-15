@@ -20,7 +20,8 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Service Provider Login'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -29,18 +30,18 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+               Text(
                 'Welcome Back, Service Provider',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
+               Text(
                 'Sign in to your business account',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                style: TextStyle(fontSize: 16, color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.6)),
               ),
               const SizedBox(height: 40),
               TextFormField(
@@ -88,9 +89,9 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
                       ),
                     );
                   },
-                  child: const Text(
+                  child: Text(
                     'Forgot Password?',
-                    style: TextStyle(color: Colors.deepPurple),
+                    style: TextStyle(color: Theme.of(context).colorScheme.primary),
                   ),
                 ),
               ),
@@ -114,14 +115,14 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Login',
-                    style: TextStyle(fontSize: 18, color: Colors.white),
+                    style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onPrimary),
                   ),
                 ),
               ),
@@ -140,9 +141,9 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
                         ),
                       );
                     },
-                    child: const Text(
+                    child: Text(
                       'Sign Up',
-                      style: TextStyle(color: Colors.deepPurple),
+                      style: TextStyle(color: Theme.of(context).colorScheme.primary),
                     ),
                   ),
                 ],

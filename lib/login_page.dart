@@ -13,10 +13,11 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      // removing hardcoded backgroundColor to let scaffold rely on theme
       appBar: AppBar(
         title: const Text('Login'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
       body: Center(
         child: Padding(
@@ -24,19 +25,19 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+               Text(
                 'Welcome Back',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
-              const Text(
+               Text(
                 'Choose your role to login',
-                style: TextStyle(fontSize: 18, color: Colors.grey),
+                style: TextStyle(fontSize: 18, color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.6)),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 60),
@@ -67,7 +68,7 @@ class _LoginPageState extends State<LoginPage> {
                               Icon(
                                 Icons.business,
                                 size: 50,
-                                color: Colors.deepPurple,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(height: 10),
                               const Text(
@@ -108,7 +109,7 @@ class _LoginPageState extends State<LoginPage> {
                               Icon(
                                 Icons.person,
                                 size: 50,
-                                color: Colors.deepPurple,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(height: 10),
                               const Text(

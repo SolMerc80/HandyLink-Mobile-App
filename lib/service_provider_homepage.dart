@@ -8,8 +8,12 @@ class ServiceProviderHomepage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Service Provider Homepage'), backgroundColor: Colors.deepPurple),
-      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Service Provider Homepage'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+      ),
+      // backgroundColor: Colors.white, // allow theme to control background
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
