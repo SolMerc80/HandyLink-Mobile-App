@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "38228217910",
+    "project_id": "handylink-1588f",
+    "storage_bucket": "handylink-1588f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:38228217910:android:804d1313a3c8e271830897",
+        "android_client_info": {
+          "package_name": "com.HIT.handy_link"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBdnuWqID3HzKtwXG85-BXo4HgcHdlLA4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
