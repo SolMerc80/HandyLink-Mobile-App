@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:handy_link/client_homepage.dart';
 import 'package:handy_link/client_signup_page.dart';
 
 class ClientLoginPage extends StatefulWidget {
@@ -28,7 +29,7 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-               Text(
+              Text(
                 'Welcome Back, Client',
                 style: TextStyle(
                   fontSize: 24,
@@ -37,9 +38,14 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
                 ),
               ),
               const SizedBox(height: 20),
-               Text(
+              Text(
                 'Sign in to your account',
-                style: TextStyle(fontSize: 16, color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.6)),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.color?.withOpacity(0.6),
+                ),
               ),
               const SizedBox(height: 40),
               TextFormField(
@@ -92,7 +98,9 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
                   },
                   child: Text(
                     'Forgot Password?',
-                    style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                 ),
               ),
@@ -107,10 +115,12 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Login successful!')),
                       );
-                      Navigator.popUntil(
+                      Navigator.pushReplacement(
                         context,
-                        (route) => route.isFirst,
-                      ); // Go back to main page
+                        MaterialPageRoute(
+                          builder: (context) => const ClientHomepage(),
+                        ),
+                      );
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -121,7 +131,10 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
                   ),
                   child: Text(
                     'Login',
-                    style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onPrimary),
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
                   ),
                 ),
               ),
@@ -141,7 +154,9 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
                     },
                     child: Text(
                       'Sign Up',
-                      style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ),
                 ],

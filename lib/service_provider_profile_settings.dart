@@ -86,7 +86,7 @@ class _ServiceProviderProfileSettingsState extends State<ServiceProviderProfileS
   import 'package:flutter/material.dart';
 
   class ServiceProviderProfileSettings extends StatelessWidget {
-  final String profileImage = 'lib\assets\images\PHOTO-2026-01-05-17-10-37.jpg';
+  final String profileImage = 'libassetsimagesPHOTO-2026-01-05-17-10-37.jpg';
   final String email = 'johndoe@example.com';
   final String phone = '+263 77 123 4567';
   final String service = 'Painter';

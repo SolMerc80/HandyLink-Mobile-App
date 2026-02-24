@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:handy_link/assets/service_provider_change_password.dart';
-import 'package:handy_link/assets/rating_summary.dart';
-import 'package:handy_link/assets/view_reviews.dart';
-import 'package:handy_link/service_provider_profile_settings.dart';
+import 'client_profile_settings.dart';
 
-class ServiceProviderHomepage extends StatelessWidget {
-  const ServiceProviderHomepage({super.key});
+class ClientHomepage extends StatelessWidget {
+  const ClientHomepage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Service Provider Homepage'),
+        title: const Text('Client Homepage'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
-      // backgroundColor: Colors.white, // allow theme to control background
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -34,13 +30,17 @@ class ServiceProviderHomepage extends StatelessWidget {
                       backgroundColor: Theme.of(
                         context,
                       ).colorScheme.secondaryContainer,
-                      backgroundImage: const AssetImage(
-                        'lib/assets/images/PHOTO-2026-01-05-17-10-37.jpg',
+                      child: Icon(
+                        Icons.person,
+                        size: 50,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSecondaryContainer,
                       ),
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'John Doe',
+                      'Jane Doe',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -48,7 +48,7 @@ class ServiceProviderHomepage extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Painter',
+                      'Client',
                       style: TextStyle(
                         fontSize: 14,
                         color: Theme.of(context).colorScheme.primary,
@@ -61,27 +61,54 @@ class ServiceProviderHomepage extends StatelessWidget {
             ),
 
             const SizedBox(height: 16),
-            // Profile Management Panel
+
+            // My Bookings Panel
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    const Text(
-                      "Profile Management",
-                      style: TextStyle(fontSize: 18),
+                    const Text('My Bookings', style: TextStyle(fontSize: 18)),
+                    const SizedBox(height: 8),
+                    ListTile(
+                      leading: const Icon(Icons.calendar_today),
+                      title: const Text('View Bookings'),
+                      onTap: () {
+                        // Navigate to view bookings
+                      },
                     ),
+                    ListTile(
+                      leading: const Icon(Icons.history),
+                      title: const Text('Booking History'),
+                      onTap: () {
+                        // Navigate to booking history
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Account Panel
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    const Text('Account', style: TextStyle(fontSize: 18)),
                     const SizedBox(height: 8),
                     ListTile(
                       leading: const Icon(Icons.person),
-                      title: const Text('Edit profile'),
+                      title: const Text('Edit Profile'),
                       onTap: () {
                         // Navigate to edit profile
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                const ServiceProviderProfileSettings(),
+                              const ClientProfileSettings(),
                           ),
                         );
                       },
@@ -91,55 +118,6 @@ class ServiceProviderHomepage extends StatelessWidget {
                       title: const Text('Change Password'),
                       onTap: () {
                         // Navigate to change password
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const ServiceProviderChangePassword(),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-            // Reviews and Rating panel
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Reviews and Ratings',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                    const SizedBox(height: 8),
-                    ListTile(
-                      leading: const Icon(Icons.star),
-                      title: const Text('View Reviews'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ViewReviewsPage(),
-                          ),
-                        );
-                      },
-                    ),
-
-                    ListTile(
-                      leading: const Icon(Icons.rate_review),
-                      title: const Text('Rating Summary'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const RatingSummaryPage(),
-                          ),
-                        );
                       },
                     ),
                   ],
