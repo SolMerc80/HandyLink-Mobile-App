@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:handy_link/firebase_options.dart';
 import 'package:handy_link/service_provider_signup_page.dart';
 import 'package:handy_link/client_signup_page.dart';
 import 'package:handy_link/login_page.dart';
@@ -6,7 +8,9 @@ import 'package:handy_link/login_page.dart';
 // Global ValueNotifier to manage theme state
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -62,9 +66,11 @@ class _MyHomePageState extends State<MyHomePage> {
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
           IconButton(
-            icon: Icon(themeNotifier.value == ThemeMode.light
-                ? Icons.dark_mode
-                : Icons.light_mode),
+            icon: Icon(
+              themeNotifier.value == ThemeMode.light
+                  ? Icons.dark_mode
+                  : Icons.light_mode,
+            ),
             onPressed: () {
               themeNotifier.value = themeNotifier.value == ThemeMode.light
                   ? ThemeMode.dark
@@ -92,7 +98,11 @@ class _MyHomePageState extends State<MyHomePage> {
               Text(
                 'Choose your role to continue',
                 style: TextStyle(
-                    fontSize: 18, color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.6)),
+                  fontSize: 18,
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.color?.withOpacity(0.6),
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 60),

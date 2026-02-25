@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ServiceProviderSignupPage extends StatefulWidget {
   const ServiceProviderSignupPage({super.key});
@@ -17,6 +19,7 @@ class _ServiceProviderSignupPageState extends State<ServiceProviderSignupPage> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   String? _selectedServiceType;
+  bool _isLoading = false;
 
   final List<String> _serviceTypes = [
     'Plumbing',
@@ -27,6 +30,66 @@ class _ServiceProviderSignupPageState extends State<ServiceProviderSignupPage> {
     'Gardening',
     'Other',
   ];
+
+  Future<void> _signUp() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // 1. Create user in Firebase Auth
+        UserCredential userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+            );
+
+        // 2. Save additional info in Cloud Firestore
+        await FirebaseFirestore.instance
+            .collection('service_providers')
+            .doc(userCredential.user!.uid)
+            .set({
+              'businessName': _businessNameController.text.trim(),
+              'serviceType': _selectedServiceType,
+              'email': _emailController.text.trim(),
+              'phoneNumber': _phoneController.text.trim(),
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account created successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context); // Go back to main page
+        }
+      } on FirebaseAuthException catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.message ?? 'An error occurred during sign up.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +106,7 @@ class _ServiceProviderSignupPageState extends State<ServiceProviderSignupPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-               Text(
+              Text(
                 'Create Your Service Provider Account',
                 style: TextStyle(
                   fontSize: 24,
@@ -167,27 +230,29 @@ class _ServiceProviderSignupPageState extends State<ServiceProviderSignupPage> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      // Handle signup logic here
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Account created successfully!'),
-                        ),
-                      );
-                      Navigator.pop(context); // Go back to main page
-                    }
-                  },
+                  onPressed: _isLoading ? null : _signUp,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: Text(
-                    'Sign Up',
-                    style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onPrimary),
-                  ),
+                  child: _isLoading
+                      ? SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          'Sign Up',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        ),
                 ),
               ),
             ],
