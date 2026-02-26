@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:handy_link/service_provider_homepage.dart';
 import 'package:handy_link/service_provider_signup_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ServiceProviderLoginPage extends StatefulWidget {
   const ServiceProviderLoginPage({super.key});
@@ -14,6 +15,45 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  Future<void> _login() async {
+  if (!_formKey.currentState!.validate()) return;
+
+  try {
+    await _auth.signInWithEmailAndPassword(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Login successful!')),
+    );
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ServiceProviderHomepage(),
+      ),
+    );
+  } on FirebaseAuthException catch (e) {
+    String message = "Login failed";
+
+    if (e.code == 'user-not-found') {
+      message = "No user found for that email.";
+    } else if (e.code == 'wrong-password') {
+      message = "Incorrect password.";
+    } else if (e.code == 'invalid-email') {
+      message = "Invalid email format.";
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +87,7 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(
-                  labelText: 'Email or Business Name',
+                  labelText: 'Email',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.email),
                 ),
@@ -100,7 +140,8 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: _login,
+                  /*onPressed: () {
                     if (_formKey.currentState!.validate()) {
                       // Handle login logic here
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -113,7 +154,7 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
                         ),
                       );
                     }
-                  },
+                  },*/
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     shape: RoundedRectangleBorder(
