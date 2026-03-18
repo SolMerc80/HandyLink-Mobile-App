@@ -4,6 +4,10 @@ import 'package:handy_link/client_signup_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// A login page specifically configured for clients.
+/// 
+/// Handles Firebase email/password authentication, verifies that the logged-in 
+/// user has a defined client record in Firestore, and supports password resets.
 class ClientLoginPage extends StatefulWidget {
   const ClientLoginPage({super.key});
 

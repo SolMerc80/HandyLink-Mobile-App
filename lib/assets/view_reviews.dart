@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+/// A page that displays a list of reviews from clients.
+/// 
+/// This widget handles rendering mock review data and allows for the 
+/// simulation of adding a new review to the list.
 class ViewReviewsPage extends StatefulWidget {
   const ViewReviewsPage({super.key});
 

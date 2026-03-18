@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// A page for clients to view their booking history and active requests.
+///
+/// It streams data from the Firestore `bookings` collection in real-time 
+/// to display requests made by the current user alongside their current status.
 class ClientViewBookingsPage extends StatelessWidget {
   const ClientViewBookingsPage({super.key});
 

@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// A page where service providers can manage incoming booking requests.
+///
+/// Contains two tabs: 'Pending' for new requests that need to be accepted 
+/// or declined, and 'History' for past requests. Allows providers to update 
+/// the request status directly in Firestore.
 class ServiceProviderRequestsPage extends StatefulWidget {
   const ServiceProviderRequestsPage({super.key});
 

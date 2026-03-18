@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// A settings page for service providers to update their business profile.
+///
+/// Providers can modify their business name, phone number, and service type,
+/// with the changes saved to the `service_providers` collection in Firestore.
+/// Email address is read-only.
 class ServiceProviderProfileSettings extends StatefulWidget {
   const ServiceProviderProfileSettings({super.key});
 

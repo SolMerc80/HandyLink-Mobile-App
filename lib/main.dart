@@ -5,15 +5,23 @@ import 'package:handy_link/service_provider_signup_page.dart';
 import 'package:handy_link/client_signup_page.dart';
 import 'package:handy_link/login_page.dart';
 
-// Global ValueNotifier to manage theme state
+/// Global [ValueNotifier] to manage the current theme state (light, dark, or system).
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
 
+/// The main entry point for the application.
+/// 
+/// It ensures that Flutter bindings are initialized, initializes Firebase 
+/// using the platform-specific options, and runs the [MyApp] widget.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
+/// The root widget of the HandyLink application.
+/// 
+/// It listens to the global [themeNotifier] to dynamically toggle
+/// between the application's light and dark themes.
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -46,15 +54,21 @@ class MyApp extends StatelessWidget {
   }
 }
 
+/// The initial landing page of the HandyLink application.
+/// 
+/// Provides options for a new user to sign up as a Service Provider or Client,
+/// as well as an option to navigate to the [LoginPage] for existing users.
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
 
+  /// The title of the home page.
   final String title;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+/// The state class for [MyHomePage], handles the UI layout and theme toggling.
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {

@@ -3,6 +3,11 @@ import 'package:handy_link/service_provider_homepage.dart';
 import 'package:handy_link/service_provider_signup_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// A login page configured for service providers.
+///
+/// Handles Firebase authentication using email and password, and routes 
+/// the authenticated provider to the [ServiceProviderHomepage]. Also supports 
+/// password resets via Firebase.
 class ServiceProviderLoginPage extends StatefulWidget {
   const ServiceProviderLoginPage({super.key});
 

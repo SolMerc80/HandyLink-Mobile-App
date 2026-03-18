@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// A data model representing a service provider available for booking.
 class ServiceProviderModel {
   final String uid;
   final String name;
@@ -20,6 +21,10 @@ class ServiceProviderModel {
   });
 }
 
+/// A page that allows clients to search, filter, and book service providers.
+/// 
+/// It fetches a list of providers from Firestore, applies user-selected filters 
+/// (like service type and minimum rating), and provides a booking modal for creating requests.
 class ClientBookingPage extends StatefulWidget {
   const ClientBookingPage({super.key});
 

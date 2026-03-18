@@ -7,6 +7,11 @@ import 'package:handy_link/assets/view_reviews.dart';
 import 'package:handy_link/service_provider_profile_settings.dart';
 import 'package:handy_link/provider_requests_page.dart';
 
+/// The main landing dashboard for an authenticated service provider.
+///
+/// Displays the provider's business information from Firestore and provides 
+/// navigation links to manage their profile, view/handle booking requests, 
+/// and check their ratings and reviews.
 class ServiceProviderHomepage extends StatefulWidget {
   const ServiceProviderHomepage({super.key});
 

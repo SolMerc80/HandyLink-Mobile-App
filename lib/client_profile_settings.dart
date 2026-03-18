@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// A settings page for clients to view and update their profile details.
+/// 
+/// Allows editing of personal information like name and phone number, 
+/// saving the updated data back to the Firestore `clients` collection.
 class ClientProfileSettings extends StatefulWidget {
   const ClientProfileSettings({super.key});
 

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+/// A page that allows a service provider to update their password.
+/// 
+/// It includes form fields with validation for the current password, 
+/// a new password (enforcing a minimum length), and password confirmation.
 class ServiceProviderChangePassword extends StatefulWidget {
   const ServiceProviderChangePassword({super.key});
 

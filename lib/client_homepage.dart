@@ -5,6 +5,11 @@ import 'client_profile_settings.dart';
 import 'client_booking_page.dart';
 import 'client_view_bookings_page.dart';
 
+/// The main landing dashboard for an authenticated client.
+/// 
+/// Displays the client's profile information fetched from Firestore, 
+/// and provides navigation links to book services, view past bookings, 
+/// and update profile settings.
 class ClientHomepage extends StatefulWidget {
   const ClientHomepage({super.key});
 

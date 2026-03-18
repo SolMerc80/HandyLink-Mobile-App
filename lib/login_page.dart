@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:handy_link/service_provider_login_page.dart';
 import 'package:handy_link/client_login_page.dart';
 
+/// The generic login selection page.
+///
+/// Provides users with the visual options to navigate to either the 
+/// Service Provider login flow or the Client login flow.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 

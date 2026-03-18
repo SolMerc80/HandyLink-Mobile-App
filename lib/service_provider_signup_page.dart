@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// A registration page for new service providers.
+///
+/// It captures business-specific details such as business name and service type,
+/// creates a Firebase Authentication profile, and stores the provider's information
+/// in the `service_providers` Firestore collection.
 class ServiceProviderSignupPage extends StatefulWidget {
   const ServiceProviderSignupPage({super.key});
 

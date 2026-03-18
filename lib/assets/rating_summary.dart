@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+/// A page that displays a summary of ratings.
+/// 
+/// This includes the overall average score, a breakdown of ratings by star count, 
+/// and a list of individual user reviews and comments.
 class RatingSummaryPage extends StatefulWidget {
   const RatingSummaryPage({super.key});
 

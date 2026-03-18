@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// A registration page for new clients.
+/// 
+/// Captures user details, creates a new Firebase Authentication account, 
+/// and stores the extended client profile in the Firestore `clients` collection.
 class ClientSignupPage extends StatefulWidget {
   const ClientSignupPage({super.key});
 
