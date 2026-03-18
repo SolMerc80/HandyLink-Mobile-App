@@ -16,44 +16,80 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _obscurePassword = true;
 
   Future<void> _login() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  try {
-    await _auth.signInWithEmailAndPassword(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
+    try {
+      await _auth.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Login successful!')),
-    );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Login successful!')));
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const ServiceProviderHomepage(),
-      ),
-    );
-  } on FirebaseAuthException catch (e) {
-    String message = "Login failed";
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const ServiceProviderHomepage(),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = "Login failed";
 
-    if (e.code == 'user-not-found') {
-      message = "No user found for that email.";
-    } else if (e.code == 'wrong-password') {
-      message = "Incorrect password.";
-    } else if (e.code == 'invalid-email') {
-      message = "Invalid email format.";
+      if (e.code == 'user-not-found') {
+        message = "No user found for that email.";
+      } else if (e.code == 'wrong-password') {
+        message = "Incorrect password.";
+      } else if (e.code == 'invalid-email') {
+        message = "Invalid email format.";
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter your email first')));
+      return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset email sent. Check your inbox.'),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = "Failed to send reset email";
+
+      if (e.code == 'user-not-found') {
+        message = "No account found with this email.";
+      } else if (e.code == 'invalid-email') {
+        message = "Invalid email format.";
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +106,7 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-               Text(
+              Text(
                 'Welcome Back, Service Provider',
                 style: TextStyle(
                   fontSize: 24,
@@ -79,9 +115,14 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
                 ),
               ),
               const SizedBox(height: 20),
-               Text(
+              Text(
                 'Sign in to your business account',
-                style: TextStyle(fontSize: 16, color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.6)),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.color?.withOpacity(0.6),
+                ),
               ),
               const SizedBox(height: 40),
               TextFormField(
@@ -102,12 +143,24 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                 ),
-                obscureText: true,
+                obscureText: _obscurePassword,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your password';
@@ -121,17 +174,13 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
                 child: TextButton(
                   onPressed: () {
                     // Handle forgot password
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Forgot password functionality coming soon',
-                        ),
-                      ),
-                    );
+                    _resetPassword();
                   },
                   child: Text(
                     'Forgot Password?',
-                    style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                 ),
               ),
@@ -163,7 +212,10 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
                   ),
                   child: Text(
                     'Login',
-                    style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onPrimary),
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
                   ),
                 ),
               ),
@@ -184,7 +236,9 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
                     },
                     child: Text(
                       'Sign Up',
-                      style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ),
                 ],

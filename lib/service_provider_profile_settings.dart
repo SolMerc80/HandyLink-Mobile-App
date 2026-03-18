@@ -1,30 +1,124 @@
-/*import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ServiceProviderProfileSettings extends StatefulWidget {
   const ServiceProviderProfileSettings({super.key});
 
   @override
-  _ServiceProviderProfileSettingsState createState() => _ServiceProviderProfileSettingsState();
+  State<ServiceProviderProfileSettings> createState() =>
+      _ServiceProviderProfileSettingsState();
 }
 
-class _ServiceProviderProfileSettingsState extends State<ServiceProviderProfileSettings> {
-  File? _image;
-  final picker = ImagePicker();
+class _ServiceProviderProfileSettingsState
+    extends State<ServiceProviderProfileSettings> {
+  final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _usernameController = TextEditingController(text: 'username');
-  final TextEditingController _emailController = TextEditingController(text: 'johndoe@example.com');
-  final TextEditingController _phoneController = TextEditingController(text: '+263 77 123 4567');
-  final TextEditingController _serviceController = TextEditingController(text: 'Painter');
+  final TextEditingController _businessNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
 
-  Future<void> _pickImage() async {
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(()
-      _image = File(pickedFile.path);
+  // Service type dropdown
+  String? _selectedServiceType;
+  final List<String> _serviceTypes = [
+    'Plumbing',
+    'Electrical',
+    'Carpentry',
+    'Cleaning',
+    'Painting',
+    'Gardening',
+    'Other',
+  ];
+
+  bool _isLoading = true;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProviderData();
+  }
+
+  Future<void> _loadProviderData() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final doc = await FirebaseFirestore.instance
+          .collection('service_providers')
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists && mounted) {
+        final data = doc.data()!;
+        setState(() {
+          _businessNameController.text = data['businessName'] ?? '';
+          _emailController.text = data['email'] ?? user.email ?? '';
+          _phoneController.text = data['phoneNumber'] ?? '';
+          _selectedServiceType = data['serviceType'];
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load profile: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isSaving = true;
     });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      await FirebaseFirestore.instance
+          .collection('service_providers')
+          .doc(user.uid)
+          .update({
+        'businessName': _businessNameController.text.trim(),
+        'phoneNumber': _phoneController.text.trim(),
+        'serviceType': _selectedServiceType,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save changes: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
     }
   }
 
@@ -32,105 +126,169 @@ class _ServiceProviderProfileSettingsState extends State<ServiceProviderProfileS
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profile Settings'),
-        backgroundColor: Colors.deepPurple,
+        title: const Text('Edit Profile'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            GestureDetector(
-              onTap: _pickImage,
-              child: CircleAvatar(
-                radius: 60,
-                backgroundImage: _image != null
-                  ? FileImage(_image!)
-                  : AssetImage(lib\assets\images\PHOTO-2026-01-05-17-10-37.jpg) as ImageProvider,
-                child: Align(
-                  alignment: Alignment.bottomRight,
-                  child: Icon(Icons.camera_alt, color: Colors.white70),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Avatar header
+                    Center(
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundColor:
+                            Theme.of(context).colorScheme.secondaryContainer,
+                        child: Icon(
+                          Icons.person,
+                          size: 50,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSecondaryContainer,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    Text(
+                      'Profile Details',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Business Name
+                    TextFormField(
+                      controller: _businessNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Business Name',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.business),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your business name';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Email — read-only since it's the auth email
+                    TextFormField(
+                      controller: _emailController,
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.email),
+                        filled: true,
+                        fillColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withOpacity(0.4),
+                        helperText: 'Email cannot be changed here',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Phone Number
+                    TextFormField(
+                      controller: _phoneController,
+                      decoration: const InputDecoration(
+                        labelText: 'Phone Number',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.phone),
+                      ),
+                      keyboardType: TextInputType.phone,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your phone number';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Service Type dropdown
+                    DropdownButtonFormField<String>(
+                      value: _selectedServiceType,
+                      decoration: const InputDecoration(
+                        labelText: 'Service Type',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.work),
+                      ),
+                      items: _serviceTypes.map((type) {
+                        return DropdownMenuItem(value: type, child: Text(type));
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedServiceType = value;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select a service type';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Save Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _saveChanges,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: _isSaving
+                            ? SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'Save Changes',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            SizedBox(height: 16),
-
-            TextField(
-              controller: _usernameController,
-              decoration: InputDecoration(labelText: 'Username'),
-            ),
-
-            TextField(
-              controller: _phoneController,
-              decoration: InputDecoration(labelText: 'Phone'),
-            ),
-
-            TextField(
-              controller: _serviceController,
-              decoration: InputDecoration(labelText: 'Service'),
-            ),
-            SizedBox(height: 20),
-
-            ElevatedButton(
-              onPressed: () {
-                //Save Logic
-              },
-              child: Text('Save Changes'),
-            ),
-          ],
-        ),
-      ),
     );
   }
-}*/
 
-  import 'package:flutter/material.dart';
-
-  class ServiceProviderProfileSettings extends StatelessWidget {
-  final String profileImage = 'libassetsimagesPHOTO-2026-01-05-17-10-37.jpg';
-  final String email = 'johndoe@example.com';
-  final String phone = '+263 77 123 4567';
-  final String service = 'Painter';
-  
-  const ServiceProviderProfileSettings ({super.key});
-
-    @override
-    Widget build(BuildContext context) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text('Profile Settings'),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              CircleAvatar(
-                radius: 60,
-                backgroundImage: AssetImage('lib/assets/images/PHOTO-2026-01-05-17-10-37.jpg'),
-              ),
-              SizedBox(height: 16),
-              Text(
-                'username',
-                style: TextStyle(fontSize: 24,
-                fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              ListTile(
-                leading: Icon(Icons.email),
-                title: Text(email),
-              ),
-              ListTile(
-                leading: Icon(Icons.phone),
-                title: Text(phone),
-              ),
-              ListTile(
-                leading: Icon(Icons.work),
-                title: Text(service),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+  @override
+  void dispose() {
+    _businessNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    super.dispose();
   }
+}
