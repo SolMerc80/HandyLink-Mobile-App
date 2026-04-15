@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'client_profile_settings.dart';
 import 'client_booking_page.dart';
 import 'client_view_bookings_page.dart';
+import 'client_booking_history_page.dart';
 
 /// The main landing dashboard for an authenticated client.
 /// 
@@ -183,7 +184,13 @@ class _ClientHomepageState extends State<ClientHomepage> {
                             leading: const Icon(Icons.history),
                             title: const Text('Booking History'),
                             onTap: () {
-                              // Navigate to booking history
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const ClientBookingHistoryPage(),
+                                ),
+                              );
                             },
                           ),
                         ],
