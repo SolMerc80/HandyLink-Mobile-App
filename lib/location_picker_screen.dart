@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'location_service.dart';
 
 class LocationPickerScreen extends StatefulWidget {
@@ -14,7 +13,7 @@ class LocationPickerScreen extends StatefulWidget {
 
 class _LocationPickerScreenState extends State<LocationPickerScreen> {
   LatLng? _selectedLatLng;
-  final MapController _mapController = MapController();
+  GoogleMapController? _mapController;
 
   @override
   void initState() {
@@ -28,7 +27,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     return const LatLng(0, 0); // Default to center of world if nothing else
   }
 
-  void _handleTap(TapPosition tapPosition, LatLng latLng) {
+  void _handleTap(LatLng latLng) {
     setState(() {
       _selectedLatLng = latLng;
     });
@@ -47,37 +46,31 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             ),
         ],
       ),
-      body: FlutterMap(
-        mapController: _mapController,
-        options: MapOptions(
-          initialCenter: _selectedLatLng ?? const LatLng(0, 0),
-          initialZoom: 15.0,
-          onTap: _handleTap,
+      body: GoogleMap(
+        onMapCreated: (controller) => _mapController = controller,
+        initialCameraPosition: CameraPosition(
+          target: _selectedLatLng ?? const LatLng(0, 0),
+          zoom: 15.0,
         ),
-        children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.example.handy_link',
-          ),
-          if (_selectedLatLng != null)
-            MarkerLayer(
-              markers: [
+        onTap: _handleTap,
+        markers: _selectedLatLng != null
+            ? {
                 Marker(
-                  point: _selectedLatLng!,
-                  width: 80,
-                  height: 80,
-                  child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                  markerId: const MarkerId('picked_location'),
+                  position: _selectedLatLng!,
                 ),
-              ],
-            ),
-        ],
+              }
+            : {},
+        myLocationEnabled: true,
+        myLocationButtonEnabled: false,
+        zoomControlsEnabled: false,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           final pos = LocationService().currentPosition;
           if (pos != null) {
             final current = LatLng(pos.latitude, pos.longitude);
-            _mapController.move(current, 15.0);
+            _mapController?.animateCamera(CameraUpdate.newLatLng(current));
             setState(() {
               _selectedLatLng = current;
             });

@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'location_service.dart';
@@ -26,9 +27,9 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final User? currentUser = FirebaseAuth.instance.currentUser;
-  final MapController _mapController = MapController();
+  GoogleMapController? _mapController;
   
-  List<Marker> _markers = [];
+  Set<Marker> _markers = {};
   LatLng? _currentLatLng;
   LatLng? _targetLatLng;
   List<LatLng> _routePoints = [];
@@ -46,19 +47,19 @@ class _MapScreenState extends State<MapScreen> {
     return LatLng(pos.latitude, pos.longitude);
   }
 
-  void _buildMarkers(List<QueryDocumentSnapshot> docs) {
-    if (currentUser == null) return;
+  Set<Marker> _getMarkersFromDocs(List<QueryDocumentSnapshot> docs) {
+    if (currentUser == null) return {};
     
-    List<Marker> newMarkers = [];
+    Set<Marker> newMarkers = {};
     
     // Add explicitly known current position marker
     if (_currentLatLng != null) {
       newMarkers.add(
         Marker(
-          point: _currentLatLng!,
-          width: 50,
-          height: 50,
-          child: const Icon(Icons.my_location, color: Colors.blue, size: 40),
+          markerId: const MarkerId('current_location'),
+          position: _currentLatLng!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+          infoWindow: const InfoWindow(title: 'My Location'),
         )
       );
     }
@@ -73,55 +74,40 @@ class _MapScreenState extends State<MapScreen> {
       
       String name = data['businessName'] ?? data['firstName'] ?? data['name'] ?? 'User';
       if (name.trim().isEmpty) name = 'User';
-      final displayName = name.split(' ')[0];
       
       if (lat != null && lng != null) {
         final pos = LatLng(lat, lng);
         final isTarget = doc.id == widget.targetId;
         
-        if (isTarget) {
-          _targetLatLng = pos;
-          _checkAndFetchRoute();
+        if (isTarget && _targetLatLng != pos) {
+          // This is a bit of a side effect, but needed for route fetching
+          Future.microtask(() {
+            if (mounted) {
+              setState(() {
+                _targetLatLng = pos;
+              });
+              _checkAndFetchRoute();
+            }
+          });
         }
         
         newMarkers.add(
           Marker(
-            point: pos,
-            width: 100,
-            height: 80,
-            child: GestureDetector(
-              onTap: () => _showUserDialog(doc.id, name, data['role'] ?? 'User'),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                    color: Colors.white70,
-                    child: Text(
-                      displayName, 
-                      style: const TextStyle(
-                        fontSize: 11, 
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Icon(
-                    Icons.location_on, 
-                    color: isTarget ? Colors.amber : Colors.red, 
-                    size: isTarget ? 50 : 40,
-                  ),
-                ],
-              ),
+            markerId: MarkerId(doc.id),
+            position: pos,
+            onTap: () => _showUserDialog(doc.id, name, data['role'] ?? 'User'),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+              isTarget ? BitmapDescriptor.hueOrange : BitmapDescriptor.hueRed,
+            ),
+            infoWindow: InfoWindow(
+              title: name,
+              snippet: data['role'] ?? 'User',
             ),
           )
         );
       }
     }
-    
-    setState(() {
-      _markers = newMarkers;
-    });
+    return newMarkers;
   }
 
   Future<void> _checkAndFetchRoute() async {
@@ -169,16 +155,60 @@ class _MapScreenState extends State<MapScreen> {
   void _showUserDialog(String targetUid, String targetName, String targetRole) {
     if (currentUser == null) return;
     
+    // Find the position for this user in the latest markers or docs
+    // For simplicity, we can fetch it from the latest targetLatLng if it matches
+    // but better to just look it up if we have the docs.
+    // For now, if it's the target user, we use _targetLatLng.
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(targetName),
         content: Text('This user is a $targetRole.'),
         actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              if (_targetLatLng != null && targetUid == widget.targetId) {
+                _launchNavigation(_targetLatLng!.latitude, _targetLatLng!.longitude);
+              } else {
+                // If it's another user, we don't have their Pos easily here without passing it
+                // but usually the target is who we want to navigate to.
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Navigation only available for target booking user'))
+                );
+              }
+            },
+            child: const Text('Navigate'),
+          ),
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
         ],
       )
     );
+  }
+
+  Future<void> _launchNavigation(double lat, double lng) async {
+    final googleMapsUrl = Uri.parse('google.navigation:q=$lat,$lng');
+    final appleMapsUrl = Uri.parse('maps://?q=$lat,$lng');
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      if (await canLaunchUrl(googleMapsUrl)) {
+        await launchUrl(googleMapsUrl);
+      } else {
+        final webUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+      }
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+      if (await canLaunchUrl(appleMapsUrl)) {
+        await launchUrl(appleMapsUrl);
+      } else {
+        final webUrl = Uri.parse('https://maps.apple.com/?q=$lat,$lng');
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+      }
+    } else {
+      final webUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+      await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+    }
   }
 
   @override
@@ -203,8 +233,10 @@ class _MapScreenState extends State<MapScreen> {
           IconButton(
             icon: const Icon(Icons.my_location),
             onPressed: () {
-              if (_currentLatLng != null) {
-                _mapController.move(_currentLatLng!, 15.0);
+              if (_currentLatLng != null && _mapController != null) {
+                _mapController!.animateCamera(
+                  CameraUpdate.newLatLngZoom(_currentLatLng!, 15.0),
+                );
               }
             },
           )
@@ -213,44 +245,39 @@ class _MapScreenState extends State<MapScreen> {
       body: StreamBuilder<QuerySnapshot>(
         stream: oppositeStream,
         builder: (context, snapshot) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (snapshot.hasData) {
-              _buildMarkers(snapshot.data!.docs);
-            }
-          });
+          final markers = snapshot.hasData 
+              ? _getMarkersFromDocs(snapshot.data!.docs) 
+              : <Marker>{};
 
-          return FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _currentLatLng!,
-              initialZoom: 14.0,
+          return GoogleMap(
+            onMapCreated: (controller) => _mapController = controller,
+            initialCameraPosition: CameraPosition(
+              target: _currentLatLng!,
+              zoom: 14.0,
             ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.handy_link',
-              ),
-              PolylineLayer(
-                polylines: _routePoints.isNotEmpty
-                    ? <Polyline<Object>>[
-                        Polyline<Object>(
-                          points: _routePoints,
+            markers: markers,
+            polylines: _routePoints.isNotEmpty
+                ? {
+                    Polyline(
+                      polylineId: const PolylineId('route'),
+                      points: _routePoints,
+                      color: Colors.blue.withOpacity(0.7),
+                      width: 5,
+                    ),
+                  }
+                : (widget.targetLocation != null
+                    ? {
+                        Polyline(
+                          polylineId: const PolylineId('direct'),
+                          points: [_currentLatLng!, widget.targetLocation!],
                           color: Colors.blue.withOpacity(0.7),
-                          strokeWidth: 5.0,
+                          width: 5,
                         ),
-                      ]
-                    : ((_currentLatLng != null && widget.targetLocation != null)
-                        ? <Polyline<Object>>[
-                            Polyline<Object>(
-                              points: [_currentLatLng!, widget.targetLocation!],
-                              color: Colors.blue.withOpacity(0.7),
-                              strokeWidth: 5.0,
-                            ),
-                          ]
-                        : <Polyline<Object>>[]),
-              ),
-              MarkerLayer(markers: _markers),
-            ],
+                      }
+                    : {}),
+            myLocationEnabled: true,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
           );
         },
       ),
