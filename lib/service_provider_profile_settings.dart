@@ -22,6 +22,7 @@ class _ServiceProviderProfileSettingsState
   final TextEditingController _businessNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _sosContactController = TextEditingController();
 
   // Service type dropdown
   String? _selectedServiceType;
@@ -66,6 +67,7 @@ class _ServiceProviderProfileSettingsState
           _businessNameController.text = data['businessName'] ?? '';
           _emailController.text = data['email'] ?? user.email ?? '';
           _phoneController.text = data['phoneNumber'] ?? '';
+          _sosContactController.text = data['sosContact'] ?? '';
           _selectedServiceType = data['serviceType'];
           _isVerified = data['isVerified'] ?? false;
           _verificationStatus = data['verificationStatus'] ?? '';
@@ -168,6 +170,7 @@ class _ServiceProviderProfileSettingsState
       Map<String, dynamic> updateData = {
         'businessName': _businessNameController.text.trim(),
         'phoneNumber': _phoneController.text.trim(),
+        'sosContact': _sosContactController.text.trim(),
         'serviceType': _selectedServiceType,
       };
 
@@ -521,6 +524,19 @@ class _ServiceProviderProfileSettingsState
                     ),
                     const SizedBox(height: 16),
 
+                    // SOS Contact
+                    TextFormField(
+                      controller: _sosContactController,
+                      decoration: const InputDecoration(
+                        labelText: 'SOS Emergency Contact',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.emergency, color: Colors.red),
+                        hintText: 'Enter phone number for SOS calls',
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 16),
+
                     // Service Type dropdown
                     DropdownButtonFormField<String>(
                       value: _selectedServiceType,
@@ -607,6 +623,7 @@ class _ServiceProviderProfileSettingsState
     _businessNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _sosContactController.dispose();
     super.dispose();
   }
 }

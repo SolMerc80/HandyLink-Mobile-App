@@ -20,6 +20,7 @@ class _ClientProfileSettingsState extends State<ClientProfileSettings> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _sosContactController = TextEditingController();
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -50,6 +51,7 @@ class _ClientProfileSettingsState extends State<ClientProfileSettings> {
           _lastNameController.text = data['lastName'] ?? '';
           _emailController.text = data['email'] ?? user.email ?? '';
           _phoneController.text = data['phoneNumber'] ?? '';
+          _sosContactController.text = data['sosContact'] ?? '';
           _profileImageUrl = data['profileImageUrl'];
           if (data['latitude'] != null && data['longitude'] != null) {
             _savedLocation = LatLng(data['latitude'], data['longitude']);
@@ -149,6 +151,7 @@ class _ClientProfileSettingsState extends State<ClientProfileSettings> {
         'firstName': _firstNameController.text.trim(),
         'lastName': _lastNameController.text.trim(),
         'phoneNumber': _phoneController.text.trim(),
+        'sosContact': _sosContactController.text.trim(),
       };
 
       if (_savedLocation != null) {
@@ -323,6 +326,19 @@ class _ClientProfileSettingsState extends State<ClientProfileSettings> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 16),
+
+                    // SOS Contact
+                    TextFormField(
+                      controller: _sosContactController,
+                      decoration: const InputDecoration(
+                        labelText: 'SOS Emergency Contact',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.emergency, color: Colors.red),
+                        hintText: 'Enter phone number for SOS calls',
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
                     const SizedBox(height: 24),
 
                     // Location Picker Section
@@ -387,6 +403,7 @@ class _ClientProfileSettingsState extends State<ClientProfileSettings> {
     _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _sosContactController.dispose();
     super.dispose();
   }
 }

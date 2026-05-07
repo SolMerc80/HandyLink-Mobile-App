@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'client_profile_settings.dart';
+import 'package:handy_link/change_password_screen.dart';
 import 'client_booking_page.dart';
 import 'client_view_bookings_page.dart';
 import 'presence_service.dart';
@@ -11,6 +12,7 @@ import 'map_screen.dart';
 import 'package:handy_link/services/system_notification_service.dart';
 import 'package:flutter/services.dart';
 import 'login_page.dart';
+import 'package:handy_link/services/sos_service.dart';
 
 class ClientHomepage extends StatefulWidget {
   const ClientHomepage({super.key});
@@ -241,6 +243,11 @@ class _ClientHomepageState extends State<ClientHomepage> {
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
           IconButton(
+            icon: const Icon(Icons.emergency, color: Colors.red),
+            tooltip: 'SOS Emergency',
+            onPressed: () => SOSService.triggerSOS(context, 'client'),
+          ),
+          IconButton(
             icon: const Icon(Icons.map),
             onPressed: () {
               Navigator.push(
@@ -402,6 +409,24 @@ class _ClientHomepageState extends State<ClientHomepage> {
                                 MaterialPageRoute(
                                   builder: (context) =>
                                       const ClientProfileSettings(),
+                                ),
+                              );
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.emergency, color: Colors.red),
+                            title: const Text('SOS Emergency', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                            onTap: () => SOSService.triggerSOS(context, 'client'),
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.lock),
+                            title: const Text('Change Password'),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const ChangePasswordScreen(),
                                 ),
                               );
                             },

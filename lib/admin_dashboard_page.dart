@@ -34,15 +34,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             'Dashboard Overview',
             style: TextStyle(
               fontSize: 32, 
-              fontWeight: FontWeight.w800, 
-              color: Colors.grey[900],
+              fontWeight: FontWeight.w900, 
+              color: Colors.black,
               letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Monitor system activity and manage users.',
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 32),
           Wrap(
@@ -110,9 +110,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         children: [
                           const Text(
                             'Escrow Funds (Suspense)',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white70),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 8),
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
@@ -147,7 +147,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: Colors.grey.shade300),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.03),
@@ -172,7 +172,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: accentColor.withOpacity(0.1),
+                      color: accentColor.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(icon, size: 32, color: accentColor),
@@ -191,7 +191,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         ),
                         Text(
                           title,
-                          style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.w900),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
@@ -213,7 +213,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('service_providers').snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return const Center(child: Text('Something went wrong'));
+          if (snapshot.hasError) return const Center(child: Text('Something went wrong', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)));
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -261,7 +261,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('clients').snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return const Center(child: Text('Something went wrong'));
+          if (snapshot.hasError) return const Center(child: Text('Something went wrong', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)));
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -311,7 +311,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -321,7 +321,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           child: Icon(isSuspended ? Icons.block : roleIcon, color: isSuspended ? Colors.red : Colors.blue.shade700),
         ),
         title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), overflow: TextOverflow.ellipsis),
-        subtitle: Text(email, style: TextStyle(color: Colors.grey[600]), overflow: TextOverflow.ellipsis),
+        subtitle: Text(email, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
         trailing: Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: 12,
@@ -363,8 +363,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             .collection('service_providers')
             .where('verificationStatus', isEqualTo: 'pending')
             .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) return const Center(child: Text('Something went wrong'));
+        builder: (verificationContext, snapshot) {
+          if (snapshot.hasError) return const Center(child: Text('Something went wrong', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)));
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -378,7 +378,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 children: [
                   Icon(Icons.verified_user_outlined, size: 64, color: Colors.grey[300]),
                   const SizedBox(height: 16),
-                  Text('All verifications are up to date!', style: TextStyle(color: Colors.grey[500], fontSize: 16)),
+                  const Text('All verifications are up to date!', style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
                 ],
               ),
             );
@@ -387,8 +387,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           return ListView.separated(
             padding: const EdgeInsets.all(24),
             itemCount: pendingProviders.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
+            separatorBuilder: (sepContext, index) => const SizedBox(height: 12),
+            itemBuilder: (itemContext, index) {
               var data = pendingProviders[index].data() as Map<String, dynamic>;
               String name = data['fullName'] ?? 'Unknown Name';
               String uid = pendingProviders[index].id;
@@ -397,7 +397,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: ListTile(
                   leading: const CircleAvatar(
@@ -405,7 +405,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     child: Icon(Icons.pending_actions, color: Colors.white),
                   ),
                   title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
-                  subtitle: const Text('New identity document submitted', overflow: TextOverflow.ellipsis),
+                  subtitle: const Text('New identity document submitted', style: TextStyle(color: Colors.black87), overflow: TextOverflow.ellipsis),
                   trailing: ElevatedButton(
                     onPressed: () => _showVerificationDialog(data, uid),
                     style: ElevatedButton.styleFrom(
@@ -434,7 +434,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             .orderBy('created_at', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return const Center(child: Text('Something went wrong'));
+          if (snapshot.hasError) return const Center(child: Text('Something went wrong', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)));
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -442,7 +442,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           final suspenseAccounts = snapshot.data!.docs;
 
           if (suspenseAccounts.isEmpty) {
-            return const Center(child: Text('No suspense transactions found.'));
+            return const Center(child: Text('No suspense transactions found.', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)));
           }
 
           return ListView.separated(
@@ -477,7 +477,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: ListTile(
                   leading: Container(
@@ -486,7 +486,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     child: Icon(statusIcon, color: statusColor),
                   ),
                   title: Text('Booking: ${bookingId.length > 8 ? bookingId.substring(0, 8) : bookingId}...', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('Created: ${createdAt.toLocal().toString().split('.')[0]}'),
+                  subtitle: Text('Created: ${createdAt.toLocal().toString().split('.')[0]}', style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
                   trailing: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -514,7 +514,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             .orderBy('timestamp', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return const Center(child: Text('Something went wrong'));
+          if (snapshot.hasError) return const Center(child: Text('Something went wrong', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)));
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -528,7 +528,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 children: [
                   Icon(Icons.mark_email_read_outlined, size: 64, color: Colors.grey[300]),
                   const SizedBox(height: 16),
-                  Text('No active reports to review.', style: TextStyle(color: Colors.grey[500])),
+                  const Text('No active reports to review.', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                 ],
               ),
             );
@@ -545,30 +545,29 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               String message = data['message'] ?? 'No Message';
               DateTime timestamp = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
               String dateStr = timestamp.toLocal().toString().split(' ')[0];
-
               return Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: ExpansionTile(
                   leading: const CircleAvatar(backgroundColor: Colors.red, child: Icon(Icons.report_problem, color: Colors.white, size: 20)),
-                  title: Text(subject, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
-                  subtitle: Text('From: $reporterName • $dateStr', overflow: TextOverflow.ellipsis),
+                  title: Text(subject, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black), overflow: TextOverflow.ellipsis),
+                  subtitle: Text('From: $reporterName • $dateStr', style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(24.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Message Detail:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          const Text('Message Detail:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black)),
                           const SizedBox(height: 12),
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
-                            child: Text(message, style: const TextStyle(height: 1.5)),
+                            decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
+                            child: Text(message, style: const TextStyle(height: 1.5, color: Colors.black, fontWeight: FontWeight.w500)),
                           ),
                           const SizedBox(height: 24),
                           Row(
@@ -608,7 +607,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             children: [
               Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
               const SizedBox(height: 4),
-              Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 16), overflow: TextOverflow.ellipsis),
+              Text(subtitle, style: const TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
             ],
           ),
         ),
@@ -620,10 +619,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   void _showVerificationDialog(Map<String, dynamic> data, String uid) {
     showDialog(
       context: context,
-      builder: (context) {
+      useRootNavigator: true,
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Identity Review'),
+          title: const Text('Identity Review', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
           content: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -633,26 +633,32 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 const SizedBox(height: 12),
                 _buildInfoRow(Icons.badge, 'ID Number', data['nationalId'] ?? 'N/A'),
                 const SizedBox(height: 24),
-                const Text('Document Preview:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Documents for Review:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
                 const SizedBox(height: 12),
-                if (data['idImageUrl'] != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      data['idImageUrl'],
-                      height: 300,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
+                if (data['idImageUrl'] != null || data['selfieImageUrl'] != null)
+                  Column(
+                    children: [
+                      if (data['idImageUrl'] != null) ...[
+                        const Text('National ID', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54)),
+                        const SizedBox(height: 4),
+                        _buildImagePreview(data['idImageUrl']),
+                        const SizedBox(height: 16),
+                      ],
+                      if (data['selfieImageUrl'] != null) ...[
+                        const Text('Selfie', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54)),
+                        const SizedBox(height: 4),
+                        _buildImagePreview(data['selfieImageUrl']),
+                      ],
+                    ],
                   )
                 else
-                  const Center(child: Text('No image attached')),
+                  const Center(child: Text('No documents attached', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
               ],
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
@@ -662,7 +668,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   'verificationStatus': 'rejected',
                   'isVerified': false,
                 });
-                if (mounted) Navigator.pop(context);
+                if (mounted) Navigator.pop(dialogContext);
               },
               child: const Text('Reject'),
             ),
@@ -680,13 +686,56 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   'firstName': firstName,
                   'lastName': lastName,
                 });
-                if (mounted) Navigator.pop(context);
+                if (mounted) Navigator.pop(dialogContext);
               },
               child: const Text('Approve Identity'),
             ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildImagePreview(String url) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        url,
+        height: 300,
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return SizedBox(
+            height: 300,
+            child: Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                    : null,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) => Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.red),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.broken_image, color: Colors.red, size: 40),
+              const SizedBox(height: 8),
+              const Text('Failed to load image preview.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+              const SizedBox(height: 4),
+              SelectableText('URL: $url', style: const TextStyle(fontSize: 12, color: Colors.black87)),
+              const SizedBox(height: 4),
+              SelectableText('Error: $error', style: const TextStyle(fontSize: 12, color: Colors.red)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -699,8 +748,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), overflow: TextOverflow.ellipsis),
+              Text(label, style: const TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.bold)),
+              Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black), overflow: TextOverflow.ellipsis),
             ],
           ),
         ),
@@ -731,7 +780,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               child: Center(
                 child: Text(
                   'HandyLink System',
-                  style: TextStyle(color: Colors.white.withOpacity(0.7), fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -808,12 +857,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   const SizedBox(height: 16),
                   const Text(
                     'Super Administrator',
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900, 
+                      fontSize: 22, 
+                      color: Color(0xFFC62828), // Bright Red
+                      letterSpacing: -0.5,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     'Main System Controller',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12, fontWeight: FontWeight.w600),
+                    style: const TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.w900),
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 32),
@@ -833,9 +887,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   ),
                   Padding(
                     padding: const EdgeInsets.all(24.0),
-                    child: Text(
+                    child: const Text(
                       'v1.0.4 - HandyLink',
-                      style: TextStyle(color: Colors.grey[400], fontSize: 10, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -861,14 +915,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         },
         leading: Icon(
           icon, 
-          color: isSelected ? Colors.red[800] : Colors.grey[500],
-          size: 22,
+          color: isSelected ? Colors.red[800] : Colors.black,
+          size: 24,
         ),
         title: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.red[800] : Colors.grey[700],
-            fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+            color: isSelected ? Colors.red[800] : Colors.black,
+            fontWeight: isSelected ? FontWeight.w900 : FontWeight.w800,
             fontSize: 14,
           ),
           overflow: TextOverflow.ellipsis,

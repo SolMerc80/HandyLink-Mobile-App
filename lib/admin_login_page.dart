@@ -39,14 +39,36 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
           .get();
 
       if (!adminDoc.exists) {
+        if (userCredential.user!.email == 'kuyangamaraobeykayz@gmail.com') {
+          // Auto-create admin record for the designated master admin
+          await FirebaseFirestore.instance.collection('admins').doc(userCredential.user!.uid).set({
+            'name': 'Master Admin',
+            'email': userCredential.user!.email,
+            'uid': userCredential.user!.uid,
+            'role': 'admin',
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        } else {
+          await _auth.signOut();
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Access denied. You do not have admin privileges.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+      } else if (userCredential.user!.email != 'kuyangamaraobeykayz@gmail.com') {
+        // Double check even if doc exists (just in case)
         await _auth.signOut();
         if (!mounted) return;
-
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Access denied. No admin privileges found.',
-            ),
+            content: Text('Access denied. Unrecognized admin account.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -170,9 +192,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                     'Secure dashboard access',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge?.color?.withOpacity(0.6),
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -264,7 +284,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                   ),
                   const SizedBox(height: 20),
                   // Temporary Signup link
-                  Center(
+                  /*Center(
                     child: TextButton(
                       onPressed: () {
                         Navigator.push(
@@ -275,13 +295,13 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                         );
                       },
                       child: Text(
-                        'Test: Create Admin Account',
+                        'Create Admin Account',
                         style: TextStyle(
                           color: Colors.red[800],
                         ),
                       ),
                     ),
-                  ),
+                  ),*/
                 ],
               ),
             ),

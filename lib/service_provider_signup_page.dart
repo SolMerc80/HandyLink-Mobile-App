@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math';
+import 'package:handy_link/services/brevo_service.dart';
+import 'package:handy_link/email_verify_screen.dart';
 
 class ServiceProviderSignupPage extends StatefulWidget {
   const ServiceProviderSignupPage({super.key});
@@ -47,30 +50,150 @@ class _ServiceProviderSignupPageState extends State<ServiceProviderSignupPage> {
               password: _passwordController.text,
             );
 
-        // 2. Save additional info in Cloud Firestore
-        await FirebaseFirestore.instance
-            .collection('service_providers')
-            .doc(userCredential.user!.uid)
-            .set({
-              'businessName': _businessNameController.text.trim(),
-              'serviceType': _selectedServiceType,
-              'email': _emailController.text.trim(),
-              'phoneNumber': _phoneController.text.trim(),
-              'role': 'provider', // explicitly tagging users
-              'rating': 0.0, // explicitly initial rating to 0.0
-              'createdAt': FieldValue.serverTimestamp(),
-            });
+        // 2. Generate verification code
+        String verificationCode = (Random().nextInt(900000) + 100000).toString();
+
+        // 3. Prepare additional info (DO NOT save to Firestore yet)
+        Map<String, dynamic> userData = {
+          'businessName': _businessNameController.text.trim(),
+          'serviceType': _selectedServiceType,
+          'email': _emailController.text.trim(),
+          'phoneNumber': _phoneController.text.trim(),
+          'uid': userCredential.user!.uid,
+          'role': 'provider',
+          'rating': 0.0,
+          'isSuspended': false,
+          'isEmailVerified': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+
+        // 4. Send verification email via Brevo
+        await BrevoService.sendVerificationCode(
+          _emailController.text.trim(),
+          _businessNameController.text.trim(),
+          verificationCode,
+        );
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Account created successfully!'),
-              backgroundColor: Colors.green,
+              content: Text('Verification code sent to your email.'),
+              backgroundColor: Colors.blue,
             ),
           );
-          Navigator.pop(context); // Go back to main page
+
+          // 5. Navigate to Verification Screen with user data
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EmailVerifyScreen(
+                email: _emailController.text.trim(),
+                name: _businessNameController.text.trim(),
+                role: 'provider',
+                userData: userData,
+                initialCode: verificationCode,
+              ),
+            ),
+          );
+
+          if (result == true && mounted) {
+            Navigator.pop(context); // Go back after success
+          }
         }
       } on FirebaseAuthException catch (e) {
+        if (e.code == 'email-already-in-use') {
+          try {
+            final signInResult = await FirebaseAuth.instance.signInWithEmailAndPassword(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+            );
+            
+            final uid = signInResult.user!.uid;
+            final doc = await FirebaseFirestore.instance.collection('service_providers').doc(uid).get();
+            
+            if (!doc.exists) {
+              // CASE: Auth account exists but Firestore record doesn't (unverified)
+              // We'll use the data currently in the form fields to proceed
+              String verificationCode = (Random().nextInt(900000) + 100000).toString();
+              
+              Map<String, dynamic> userData = {
+                'businessName': _businessNameController.text.trim(),
+                'serviceType': _selectedServiceType,
+                'email': _emailController.text.trim(),
+                'phoneNumber': _phoneController.text.trim(),
+                'uid': uid,
+                'role': 'provider',
+                'rating': 0.0,
+                'isSuspended': false,
+                'isEmailVerified': false,
+                'createdAt': FieldValue.serverTimestamp(),
+              };
+
+              await BrevoService.sendVerificationCode(
+                _emailController.text.trim(),
+                _businessNameController.text.trim(),
+                verificationCode,
+              );
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Unverified account found. A new code has been sent.'), backgroundColor: Colors.blue),
+                );
+                
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EmailVerifyScreen(
+                      email: _emailController.text.trim(),
+                      name: _businessNameController.text.trim(),
+                      role: 'provider',
+                      userData: userData,
+                      initialCode: verificationCode,
+                    ),
+                  ),
+                );
+                if (result == true && mounted) Navigator.pop(context);
+              }
+              return;
+            } else if (doc.data()?['isEmailVerified'] == false) {
+              // CASE: Firestore record exists but is not verified (Legacy support or resending)
+              String verificationCode = (Random().nextInt(900000) + 100000).toString();
+              
+              await FirebaseFirestore.instance.collection('service_providers').doc(uid).update({
+                'verificationCode': verificationCode,
+                'verificationCodeTimestamp': FieldValue.serverTimestamp(),
+              });
+
+              await BrevoService.sendVerificationCode(
+                _emailController.text.trim(),
+                doc.data()?['businessName'] ?? 'Provider',
+                verificationCode,
+              );
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Unverified account found. A new code has been sent.'), backgroundColor: Colors.blue),
+                );
+                
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EmailVerifyScreen(
+                      email: _emailController.text.trim(),
+                      name: doc.data()?['businessName'] ?? 'Provider',
+                      role: 'provider',
+                    ),
+                  ),
+                );
+                if (result == true && mounted) Navigator.pop(context);
+              }
+              return;
+            }
+          } catch (_) {
+            // If sign-in fails, fall through to default error handling
+          }
+        }
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:handy_link/client_homepage.dart';
 import 'package:handy_link/client_signup_page.dart';
+import 'package:handy_link/email_verify_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -50,6 +51,33 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
             backgroundColor: Colors.red,
           ),
         );
+        return;
+      }
+
+      final data = clientDoc.data() as Map<String, dynamic>;
+      if (data['isEmailVerified'] == false) {
+        if (!mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please verify your email before logging in.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+
+        // Redirect to verification screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EmailVerifyScreen(
+              email: _emailController.text.trim(),
+              name: data['firstName'] ?? 'Client',
+              role: 'client',
+            ),
+          ),
+        );
+        
+        await _auth.signOut();
         return;
       }
 

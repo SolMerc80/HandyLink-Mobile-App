@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:handy_link/image_upload_service.dart';
 
 class VerifyScreen extends StatefulWidget {
@@ -25,19 +26,142 @@ class _VerifyScreenState extends State<VerifyScreen> {
   String? _scannedName;
   String? _scannedId;
   String? _idImageUrl;
+  String? _selfieImageUrl;
+  bool _isUploadingId = false;
+  bool _isUploadingSelfie = false;
 
   final ImageUploadService _uploadService = ImageUploadService();
 
-  Future<void> _pickAndUploadImage(ImageSource source) async {
+  @override
+  void initState() {
+    super.initState();
+    _restoreState();
+    _retrieveLostData();
+    _setupFieldListeners();
+  }
+
+  void _setupFieldListeners() {
+    _nameController.addListener(() => _saveToPrefs('last_fullName', _nameController.text));
+    _idController.addListener(() => _saveToPrefs('last_nationalId', _idController.text));
+  }
+
+  Future<void> _restoreState() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _nameController.text = prefs.getString('last_fullName') ?? '';
+        _idController.text = prefs.getString('last_nationalId') ?? '';
+        _idImageUrl = prefs.getString('last_idImageUrl');
+        _selfieImageUrl = prefs.getString('last_selfieImageUrl');
+      });
+    }
+  }
+
+  Future<void> _saveToPrefs(String key, String? value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value != null) {
+      await prefs.setString(key, value);
+    } else {
+      await prefs.remove(key);
+    }
+  }
+
+  Future<void> _retrieveLostData() async {
+    final LostDataResponse response = await _picker.retrieveLostData();
+    if (response.isEmpty) return;
+
+    if (response.file != null) {
+      final prefs = await SharedPreferences.getInstance();
+      final bool? isSelfie = prefs.getBool('is_picking_selfie');
+      
+      if (isSelfie != null) {
+        await _handlePickedFile(response.file!, isSelfie);
+      }
+    } else if (response.exception != null) {
+      debugPrint('Lost data exception: ${response.exception!.message}');
+    }
+  }
+
+  Future<void> _handlePickedFile(XFile image, bool isSelfie) async {
+    setState(() {
+      if (isSelfie) {
+        _isUploadingSelfie = true;
+      } else {
+        _isUploadingId = true;
+      }
+    });
+
+    try {
+      final File imageFile = File(image.path);
+      final String? uploadedUrl = await _uploadService.uploadImage(imageFile);
+
+      if (uploadedUrl == null) {
+        throw Exception('Failed to upload image. Please try again.');
+      }
+
+      setState(() {
+        if (isSelfie) {
+          _selfieImageUrl = uploadedUrl;
+          _saveToPrefs('last_selfieImageUrl', uploadedUrl);
+        } else {
+          _idImageUrl = uploadedUrl;
+          _saveToPrefs('last_idImageUrl', uploadedUrl);
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          if (isSelfie) {
+            _isUploadingSelfie = false;
+          } else {
+            _isUploadingId = false;
+          }
+        });
+      }
+    }
+  }
+
+  Future<void> _pickAndUploadImage(ImageSource source, bool isSelfie) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_picking_selfie', isSelfie);
+
     final XFile? image = await _picker.pickImage(source: source);
     if (image == null) return;
+
+    await _handlePickedFile(image, isSelfie);
+  }
+
+  Future<void> _validateAndSubmit() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    if (_idImageUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please upload your National ID.'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    if (_selfieImageUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please upload a selfie for verification.'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
 
     setState(() {
       _isVerifying = true;
     });
 
     try {
-      final enteredName = _nameController.text.trim();
       final enteredIdRaw = _idController.text.trim().toUpperCase();
 
       // Check if unique in Firestore
@@ -55,19 +179,8 @@ class _VerifyScreenState extends State<VerifyScreen> {
         }
       }
 
-      // Upload the image
-      final File imageFile = File(image.path);
-      final String? uploadedUrl = await _uploadService.uploadImage(imageFile);
-
-      if (uploadedUrl == null) {
-        throw Exception('Failed to upload image. Please try again.');
-      }
-
-      setState(() {
-        _scannedName = enteredName;
-        _scannedId = enteredIdRaw;
-        _idImageUrl = uploadedUrl;
-      });
+      _scannedName = _nameController.text.trim();
+      _scannedId = enteredIdRaw;
 
       await _saveVerification();
 
@@ -102,6 +215,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
           if (_scannedName != null && _scannedName!.isNotEmpty) 'fullName': _scannedName,
           if (_scannedId != null && _scannedId!.isNotEmpty) 'nationalId': _scannedId,
           if (_idImageUrl != null && _idImageUrl!.isNotEmpty) 'idImageUrl': _idImageUrl,
+          if (_selfieImageUrl != null && _selfieImageUrl!.isNotEmpty) 'selfieImageUrl': _selfieImageUrl,
         });
       }
 
@@ -113,6 +227,14 @@ class _VerifyScreenState extends State<VerifyScreen> {
           ),
         );
         Navigator.pop(context, true);
+        
+        // Clear saved state after successful submission
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('last_fullName');
+        await prefs.remove('last_nationalId');
+        await prefs.remove('last_idImageUrl');
+        await prefs.remove('last_selfieImageUrl');
+        await prefs.remove('is_picking_selfie');
       }
     } catch (e) {
       if (mounted) {
@@ -126,7 +248,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
     }
   }
 
-  void _showImageSourceDialog() {
+  void _showImageSourceDialog(bool isSelfie) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -153,7 +275,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                     label: 'Camera',
                     onTap: () {
                       Navigator.pop(context);
-                      _pickAndUploadImage(ImageSource.camera);
+                      _pickAndUploadImage(ImageSource.camera, isSelfie);
                     },
                   ),
                   _ImageSourceOption(
@@ -161,7 +283,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                     label: 'Gallery',
                     onTap: () {
                       Navigator.pop(context);
-                      _pickAndUploadImage(ImageSource.gallery);
+                      _pickAndUploadImage(ImageSource.gallery, isSelfie);
                     },
                   ),
                 ],
@@ -215,145 +337,263 @@ class _VerifyScreenState extends State<VerifyScreen> {
                     border: Border.all(
                         color: Colors.white.withOpacity(0.2), width: 1.5),
                   ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.2),
-                          ),
-                          child: const Icon(
-                            Icons.perm_identity_rounded,
-                            size: 64,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Identity Verification',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Enter your exact details exactly as they appear on your National ID, then upload a clear image of the document. An administrator will review your submission.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white70,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        TextFormField(
-                          controller: _nameController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: 'Full Name',
-                            labelStyle: const TextStyle(color: Colors.white70),
-                            prefixIcon: const Icon(Icons.person, color: Colors.white70),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                  child: SingleChildScrollView(
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withOpacity(0.2),
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.white30),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.white, width: 2),
+                            child: const Icon(
+                              Icons.perm_identity_rounded,
+                              size: 64,
+                              color: Colors.white,
                             ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your full name.';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _idController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: 'National ID Number',
-                            hintText: 'e.g. 70-2046601K40',
-                            hintStyle: const TextStyle(color: Colors.white30),
-                            labelStyle: const TextStyle(color: Colors.white70),
-                            prefixIcon: const Icon(Icons.badge, color: Colors.white70),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.white30),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.white, width: 2),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Identity Verification',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your National ID number.';
-                            }
-                            // Example format match (relaxed for letters/numbers):
-                            final idRegex = RegExp(r'^\d{2}[-\s]?\d{6,7}[-\s]?[a-zA-Z][-\s]?\d{2}$');
-                            if (!idRegex.hasMatch(value)) {
-                              return 'Format invalid. Use pattern like: 70-2046601K40';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 32),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton.icon(
-                            onPressed: _isVerifying ? null : () {
-                              if (_formKey.currentState!.validate()) {
-                                _showImageSourceDialog();
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF2B5876),
-                              shape: RoundedRectangleBorder(
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Enter your exact details exactly as they appear on your National ID, then upload a clear image of the document. An administrator will review your submission.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          TextFormField(
+                            controller: _nameController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              labelText: 'Full Name',
+                              labelStyle: const TextStyle(color: Colors.white70),
+                              prefixIcon:
+                                  const Icon(Icons.person, color: Colors.white70),
+                              border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              elevation: 5,
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    const BorderSide(color: Colors.white30),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Colors.white, width: 2),
+                              ),
                             ),
-                            icon: _isVerifying
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.upload_file),
-                            label: const Text(
-                              'Upload National ID',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your full name.';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _idController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              labelText: 'National ID Number',
+                              hintText: 'e.g. 70-2046601K40',
+                              hintStyle: const TextStyle(color: Colors.white30),
+                              labelStyle: const TextStyle(color: Colors.white70),
+                              prefixIcon:
+                                  const Icon(Icons.badge, color: Colors.white70),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    const BorderSide(color: Colors.white30),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Colors.white, width: 2),
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your National ID number.';
+                              }
+                              // Example format match (relaxed for letters/numbers):
+                              final idRegex = RegExp(
+                                  r'^\d{2}[-\s]?\d{6,7}[-\s]?[a-zA-Z][-\s]?\d{2}$');
+                              if (!idRegex.hasMatch(value)) {
+                                return 'Format invalid. Use pattern like: 70-2046601K40';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Required Documents',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildUploadCard(
+                            title: 'National ID',
+                            subtitle: 'Upload a clear photo of your ID',
+                            imageUrl: _idImageUrl,
+                            isUploading: _isUploadingId,
+                            onTap: () => _showImageSourceDialog(false),
+                            icon: Icons.badge,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildUploadCard(
+                            title: 'Selfie',
+                            subtitle: 'Upload a clear selfie photo',
+                            imageUrl: _selfieImageUrl,
+                            isUploading: _isUploadingSelfie,
+                            onTap: () => _showImageSourceDialog(true),
+                            icon: Icons.face,
+                          ),
+                          const SizedBox(height: 32),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton.icon(
+                              onPressed: _isVerifying
+                                  ? null
+                                  : _validateAndSubmit,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: const Color(0xFF2B5876),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 5,
+                              ),
+                              icon: _isVerifying
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.check_circle),
+                              label: const Text(
+                                'Submit for Verification',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUploadCard({
+    required String title,
+    required String subtitle,
+    required String? imageUrl,
+    required bool isUploading,
+    required VoidCallback onTap,
+    required IconData icon,
+  }) {
+    return GestureDetector(
+      onTap: isUploading ? null : onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: imageUrl != null ? Colors.green.withOpacity(0.5) : Colors.white24,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: imageUrl != null ? Colors.green.withOpacity(0.2) : Colors.white.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                imageUrl != null ? Icons.check : icon,
+                color: imageUrl != null ? Colors.green : Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    imageUrl != null ? 'Image uploaded' : subtitle,
+                    style: TextStyle(
+                      color: imageUrl != null ? Colors.green : Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isUploading)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            else if (imageUrl != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Image.network(
+                  imageUrl,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                ),
+              )
+            else
+              const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 16),
+          ],
         ),
       ),
     );

@@ -27,6 +27,13 @@ class _AdminSignupPageState extends State<AdminSignupPage> {
       });
 
       try {
+        if (_emailController.text.trim() != 'kuyangamaraobeykayz@gmail.com') {
+          throw FirebaseAuthException(
+            code: 'operation-not-allowed',
+            message: 'New admin registrations are currently disabled.',
+          );
+        }
+
         UserCredential userCredential =
             await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),

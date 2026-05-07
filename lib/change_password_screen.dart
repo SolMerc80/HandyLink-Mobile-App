@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class ServiceProviderChangePassword extends StatefulWidget {
-  const ServiceProviderChangePassword({super.key});
+class ChangePasswordScreen extends StatefulWidget {
+  const ChangePasswordScreen({super.key});
 
   @override
-  State<ServiceProviderChangePassword> createState() =>
-      _ServiceProviderChangePasswordState();
+  State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
 }
 
-class _ServiceProviderChangePasswordState
-    extends State<ServiceProviderChangePassword> {
+class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _currentPasswordController =
@@ -23,24 +22,64 @@ class _ServiceProviderChangePasswordState
   bool _obscureConfirm = true;
   bool _isLoading = false;
 
-  void _submit() async {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
-    // TODO: Replace with real Firebase / backend password update call.
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('No user logged in.');
+      }
 
-    setState(() => _isLoading = false);
+      // 1. Re-authenticate the user
+      final AuthCredential credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: _currentPasswordController.text.trim(),
+      );
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Password changed successfully!'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-      ),
-    );
-    Navigator.pop(context);
+      await user.reauthenticateWithCredential(credential);
+
+      // 2. Update the password
+      await user.updatePassword(_newPasswordController.text.trim());
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Password changed successfully!'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
+      Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      String message = 'Failed to change password.';
+      if (e.code == 'wrong-password') {
+        message = 'The current password you entered is incorrect.';
+      } else if (e.code == 'weak-password') {
+        message = 'The new password is too weak.';
+      }
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An error occurred: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   InputDecoration _fieldDecoration({

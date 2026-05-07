@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:overlay_support/overlay_support.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
 
 class SystemNotificationService {
@@ -24,6 +25,7 @@ class SystemNotificationService {
   StreamSubscription<QuerySnapshot>? _providerReviewSub;
 
   void initialize({required String userRole}) {
+    _requestNotificationPermission();
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
@@ -161,5 +163,12 @@ class SystemNotificationService {
         }
       }
     });
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    final status = await Permission.notification.status;
+    if (status.isDenied) {
+      await Permission.notification.request();
+    }
   }
 }

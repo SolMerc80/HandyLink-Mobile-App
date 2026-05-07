@@ -98,6 +98,11 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Image.asset(
+                'lib/assets/images/logo.png',
+                height: 120,
+              ),
+              const SizedBox(height: 20),
               Text(
                 'Welcome to HandyLink',
                 style: TextStyle(

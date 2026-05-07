@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math';
+import 'package:handy_link/services/brevo_service.dart';
+import 'package:handy_link/email_verify_screen.dart';
 
 class ClientSignupPage extends StatefulWidget {
   const ClientSignupPage({super.key});
@@ -40,27 +43,147 @@ class _ClientSignupPageState extends State<ClientSignupPage> {
       // 2. Get unique user ID
       String uid = userCredential.user!.uid;
 
-      // 3. Store additional user information in Firestore
-      await FirebaseFirestore.instance.collection('clients').doc(uid).set({
+      // 3. Generate verification code
+      String verificationCode = (Random().nextInt(900000) + 100000).toString();
+
+      // 4. Prepare additional user information (DO NOT save to Firestore yet)
+      Map<String, dynamic> userData = {
         'firstName': _firstNameController.text.trim(),
         'lastName': _lastNameController.text.trim(),
         'email': _emailController.text.trim(),
         'phoneNumber': _phoneController.text.trim(),
         'uid': uid,
+        'isSuspended': false,
+        'isEmailVerified': false,
         'createdAt': FieldValue.serverTimestamp(),
-      });
+      };
+
+      // 5. Send verification email via Brevo
+      await BrevoService.sendVerificationCode(
+        _emailController.text.trim(),
+        _firstNameController.text.trim(),
+        verificationCode,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Account created successfully'),
-            backgroundColor: Colors.green,
+            content: Text('Verification code sent to your email.'),
+            backgroundColor: Colors.blue,
           ),
         );
 
-        Navigator.pop(context);
+        // 6. Navigate to Verification Screen with user data
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EmailVerifyScreen(
+              email: _emailController.text.trim(),
+              name: _firstNameController.text.trim(),
+              role: 'client',
+              userData: userData,
+              initialCode: verificationCode,
+            ),
+          ),
+        );
+
+        if (result == true && mounted) {
+           Navigator.pop(context); // Go back after success
+        }
       }
     } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        try {
+          // Attempt to sign in to check status
+          final signInResult = await FirebaseAuth.instance.signInWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
+          
+          final uid = signInResult.user!.uid;
+          final doc = await FirebaseFirestore.instance.collection('clients').doc(uid).get();
+          
+          if (!doc.exists) {
+            // CASE: Auth account exists but Firestore record doesn't (unverified)
+            // We'll use the data currently in the form fields to proceed
+            String verificationCode = (Random().nextInt(900000) + 100000).toString();
+            
+            Map<String, dynamic> userData = {
+               'firstName': _firstNameController.text.trim(),
+               'lastName': _lastNameController.text.trim(),
+               'email': _emailController.text.trim(),
+               'phoneNumber': _phoneController.text.trim(),
+               'uid': uid,
+               'isSuspended': false,
+               'isEmailVerified': false,
+               'createdAt': FieldValue.serverTimestamp(),
+            };
+
+            await BrevoService.sendVerificationCode(
+              _emailController.text.trim(),
+              _firstNameController.text.trim(),
+              verificationCode,
+            );
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Unverified account found. A new code has been sent.'), backgroundColor: Colors.blue),
+              );
+              
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EmailVerifyScreen(
+                    email: _emailController.text.trim(),
+                    name: _firstNameController.text.trim(),
+                    role: 'client',
+                    userData: userData,
+                    initialCode: verificationCode,
+                  ),
+                ),
+              );
+              if (result == true && mounted) Navigator.pop(context);
+            }
+            return;
+          } else if (doc.data()?['isEmailVerified'] == false) {
+            // CASE: Firestore record exists but is not verified (Legacy support or resending)
+            String verificationCode = (Random().nextInt(900000) + 100000).toString();
+            
+            await FirebaseFirestore.instance.collection('clients').doc(uid).update({
+              'verificationCode': verificationCode,
+              'verificationCodeTimestamp': FieldValue.serverTimestamp(),
+            });
+
+            await BrevoService.sendVerificationCode(
+              _emailController.text.trim(),
+              doc.data()?['firstName'] ?? 'Client',
+              verificationCode,
+            );
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Unverified account found. A new code has been sent.'), backgroundColor: Colors.blue),
+              );
+              
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EmailVerifyScreen(
+                    email: _emailController.text.trim(),
+                    name: doc.data()?['firstName'] ?? 'Client',
+                    role: 'client',
+                  ),
+                ),
+              );
+              if (result == true && mounted) Navigator.pop(context);
+            }
+            return;
+          }
+        } catch (_) {
+          // If sign-in fails (e.g. wrong password), fall through to default error handling
+        }
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.message ?? "Signup failed"),

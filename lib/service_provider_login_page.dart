@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:handy_link/service_provider_homepage.dart';
 import 'package:handy_link/service_provider_signup_page.dart';
+import 'package:handy_link/email_verify_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -35,6 +36,33 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
 
       if (docSnapshot.exists) {
         final data = docSnapshot.data() as Map<String, dynamic>;
+        
+        // 1. Check if email is verified
+        if (data['isEmailVerified'] == false) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please verify your email before logging in.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EmailVerifyScreen(
+                email: _emailController.text.trim(),
+                name: data['businessName'] ?? 'Provider',
+                role: 'provider',
+              ),
+            ),
+          );
+
+          await _auth.signOut();
+          return;
+        }
+
+        // 2. Check if suspended
         if (data['isSuspended'] == true) {
           await _auth.signOut();
           if (!mounted) return;
@@ -96,6 +124,7 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Password reset email sent. Check your inbox.'),
+          backgroundColor: Colors.green,
         ),
       );
     } on FirebaseAuthException catch (e) {
@@ -107,9 +136,11 @@ class _ServiceProviderLoginPageState extends State<ServiceProviderLoginPage> {
         message = "Invalid email format.";
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
